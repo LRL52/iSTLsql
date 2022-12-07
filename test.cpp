@@ -66,6 +66,8 @@ int main() {
     string s1("abcd");
     string s2("abcd");
     if(s1 == s2) cout << "s1 = s2" << endl;
+    s1.erase(s1.begin());
+    cout << s1 << endl;
     dlist<_DataBase> l2;
     return 0;
 }
