@@ -1,6 +1,6 @@
 ## 现代 C++ 实现简单 SQL 数据库
 
-> iSTLsql（i谐音“爱”，STL即C++标准膜拜库）是一个简单的 SQL 数据库，基于 `std::multiset` 实现索引结构。目前支持 bzj 老师大作业要求的所有功能
+> iSTLsql（ i 谐音“爱”，STL 即 C++ 标准模板库）是一个简单的 SQL 数据库，基于 `std::multiset` 实现索引结构。目前支持 bzj 老师大作业要求的所有功能
 
 1. create database 
 
@@ -14,7 +14,7 @@
 
    注：尖括号<>标记括起了参数。在使用时，须给出具体的名字。例如： create database person 以下同此。
 
-2.  drop database
+2. drop database
 
    功能：删除数据库 
 
