@@ -1,15 +1,30 @@
 create t
-show databases
 use t
-create table person (id int, name string, job string)
+create table person (id int, name string, job string primary)
 insert person values(12345, "Bob", "sleep")
-select id from person
-select job from person
-select name from person
-select job from person
-show tables
-drop table person
-select id from person
-exit    
-show databases
+insert person values(886, "Alice", "program")
+insert person values(856, "Owen", "fish")
 exit
+create testbase
+use testbase
+create table employee (id int primary, phone string, salary int primary)
+insert employee values(55, "18723332333", 5552)
+insert employee values(65, "18723552333", 5052)
+insert employee values(75, "18726632333", 8500)
+insert employee values(10, "18723332663", 10500)
+create table mytable (weight int, height int, id int primary, comment string)
+insert mytable values(170, 55, 12, "Hello")
+insert mytable values(185, 52, 15, "ddw")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+insert mytable values(185, 52, 15, "repeat")
+exit
+exit
+FILE END FlAG

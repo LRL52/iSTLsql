@@ -86,21 +86,56 @@ class Table {
 public:
     //using column_property = pair<int, data_type>;
     using column_property = tuple<size_t, data_type, bool>; //依次为每一列的存储位置，数据类型，是否为主键（是否建立索引）
+    template<typename T>
+    struct index_t { //T可以是int或string
+        T val;
+        data_ptr p;
+        inline bool operator<(const index_t&rhs) const {
+            return val < rhs.val;
+        }
+    };
+    using int_set_ptr = multiset<index_t<int> >*;
+    using string_set_ptr = multiset<index_t<string> >*;
+    using callback = void (data_ptr, data_type, size_t);
+
 private:
     unordered_map<string, column_property> hash_table; //记录每一列的属性
+    unordered_map<string, int_set_ptr> index_int_table; //int索引的multiset指针集合
+    unordered_map<string, string_set_ptr> index_string_table; //string索引的multiset指针集合
+    vector<string> column_name; //记录每一列的名字
+
+    string table_name;
     size_t string_cnt = 0, int_cnt = 0;
     dlist<data_ptr> l;
+
+    template<typename set_t, typename val_t>
+    void index_search(set_t set_ptr, const string& op, const val_t& val, data_type sel_type, size_t sel_pos, callback output) {
+        auto it = set_ptr->begin();
+        if(op == "=") it = set_ptr->lower_bound({val, data_ptr(nullptr)});
+        if(op == ">") it = set_ptr->upper_bound({val, data_ptr(nullptr)});
+        for(; it != set_ptr->end(); it++) {
+            if(compare(it->val, op, val))
+                output(it->p, sel_type, sel_pos);
+            else
+                break;
+        }
+    }
 public:
     Table() {}
     ~Table() {
         for(auto &t : l)
             delete t;
+        for(auto &it : index_int_table)
+            delete it.second;
+        for(auto &it : index_string_table)
+            delete it.second;
     }
-    void create() {
+    void create(const string& table_name) { //创建失败的话抛出异常由调用函数回收内存
+        this->table_name = table_name;
         string name, type, primary;
         bool end_flag = false, first = true; //第一次需要判断'('
         auto fix = [&]()->void { //使用lamada表达式，解决读入末尾字符处理以及判断是否读入完的问题
-            auto last = type[type.size() - 1]; //type的最后一个字符，成功读入后type一定非空
+            auto last = type[type.size() - 1]; //type的最后一个字符，成功读入后type一定非空，最后一个字符也可以用last.back()表示，下面使用了primary.back()
             if(last == ')') end_flag = true; //读入完成
             if(last != ',' && last != ')') {
                 cin >> primary;
@@ -128,13 +163,21 @@ public:
                 hash_table[name] = make_tuple((type == "int" ? int_cnt++ : string_cnt++),
                                               (type == "int" ? data_type::INT : data_type::STRING), 
                                               (primary == "primary" ? true : false));
-                //to-do,处理主键,建立索引
+                column_name.emplace_back(name);
+                //to-do,处理主键,建立索引 √
                 if(primary == "primary") {
-                    //...
-                    primary.clear();
+                    primary.clear(); //清除索引标志
+                    if(type == "int") {
+                        auto set_ptr = new multiset<index_t<int> >;
+                        index_int_table[name] = set_ptr;
+                    } else {
+                        auto set_ptr = new multiset<index_t<string> >;
+                        index_string_table[name] = set_ptr;
+                    }
                 }
-                if(end_flag) return;
+                if(end_flag) break;
             }
+            column_name.resize(int_cnt + string_cnt); //修正列的宽度，避免内存浪费
         // } catch(invalid_argument &e) { //冗余代码？
         //     cout << e.what() << endl;
         // } catch(NameException &e) {
@@ -147,7 +190,7 @@ public:
         auto item = new Data(int_cnt, string_cnt);
         string data; //仅一个数据(string 或 int)
         bool end_flag = false, first = true;
-        // size_t cnt1 = 0, cnt2 = 0; //cnt1, cnt2分别是int和string的个数
+        size_t cnt1 = 0, cnt2 = 0; //cnt1, cnt2分别是int和string的个数
         auto fix = [&]()->data_type {
             auto last = data[data.size() - 1];
             if(last == ')') end_flag = true;
@@ -156,6 +199,7 @@ public:
             Assert(data.size() > 0);
             if(data[0] == '\"') {
                 Assert(data.size() >= 2);
+                Assert(data.back() == '\"');
                 data = data.substr(1, data.size() - 2);
                 return data_type::STRING;
             } else
@@ -171,14 +215,31 @@ public:
                 }
                 auto type = fix();
                 if(type == data_type::INT) {
+                    ++cnt1;
                     auto val = stoi(data);
                     item->emplace_int(val);
-                } else
+                } else {
+                    ++cnt2;
                     item->emplace_string(data);
+                }
                 if(end_flag) break;
             }
+            Assert(cnt1 == int_cnt && cnt2 == string_cnt);
+            //应该在插入数据成功后再插入索引，否则不好撤销
+            for(size_t i = 0; i < cnt1 + cnt2; ++i) {
+                auto name = column_name[i];
+                auto [pos, type, is_primary] = hash_table[name]; //结构化解绑定
+                if(is_primary == false) continue;
+                if(type == data_type::INT) {
+                    auto set_ptr = index_int_table[name];
+                    set_ptr->insert({item->at_int(pos), item});
+                } else {
+                    auto set_ptr = index_string_table[name];
+                    set_ptr->insert({item->at_string(pos), item});
+                }
+            }
             l.emplace_back(item);
-        } catch(invalid_argument &e) { //冗余代码
+        } catch(invalid_argument &e) { //冗余代码?
             delete item;
             cout << e.what() << endl;
         } catch(exception &e) {
@@ -189,62 +250,119 @@ public:
     void select(string &name, stringstream &ss) {
         string s, op, val;
         // int ival;
-        bool first = true;
+        // bool first = true;
         auto sel = hash_table.find(name);
         if(sel == hash_table.end())
             throw NameException(string("Error: ") + name + string(" doesn't exist."));
         auto sel_type = get<1>(sel->second);
         auto sel_pos = get<0>(sel->second);
-        auto output = [&name, &first](data_ptr p,data_type type, size_t pos)->void {
-            if(first) {
-                first = false;
-                cout << TERM_CYAN << name << TERM_RESET << endl;
-            }
+        auto out_put_first = [&name]()->void {
+            cout << TERM_CYAN << name << TERM_RESET << endl;
+        };
+        auto output = /*[&name, &first]*/[](data_ptr p, data_type type, size_t pos)->void {
+            // if(first) {
+            //     first = false;
+            //     cout << TERM_CYAN << name << TERM_RESET << endl;
+            // }
             if(type == data_type::INT) cout << p->at_int(pos) << endl;
             else cout << p->at_string(pos) << endl;
         };
         if(ss >> s) {
             Assert(s == "where");
-            Assert(bool(ss >> s));
+            Assert(bool(ss >> s)); //s是where的条件列
             auto cond = hash_table.find(s); //where的条件列
             if(cond == hash_table.end())
                 throw NameException(string("Error: ") + s + string(" doesn't exist."));
-            auto cond_type = get<1>(cond->second);
             auto cond_pos = get<0>(cond->second);
+            auto cond_type = get<1>(cond->second);
+            auto cond_primary = get<2>(cond->second);
             Assert(bool(ss >> op));
             Assert(op == "<" || op == "=" || op == ">");
             Assert(bool(ss >> val));
-            for(auto &t : l) {
-                if((cond_type == data_type::INT && compare(t->at_int(cond_pos), op, stoi(val))) ||
-                    (cond_type == data_type::STRING && compare(t->at_string(cond_pos), op, val)))
-                    output(t, sel_type, sel_pos);
+            if(cond_type == data_type::STRING) {
+                Assert(val.size() >= 2);
+                Assert(val.front() == '\"' && val.back() == '\"');
+                val = val.substr(1, val.size() - 2);
+            }
+            out_put_first();
+            if(cond_primary == true) {
+                if(cond_type == data_type::INT) {
+                    auto set_ptr = index_int_table[s];
+                    Assert(set_ptr != nullptr);
+                    auto ival = stoi(val);
+                    index_search(set_ptr, op, ival, sel_type, sel_pos, output);
+                } else {
+                    auto set_ptr = index_string_table[s];
+                    Assert(set_ptr != nullptr);
+                    index_search(set_ptr, op, val, sel_type, sel_pos, output);
+                }
+            } else {
+                for(auto &t : l) {
+                    if((cond_type == data_type::INT && compare(t->at_int(cond_pos), op, stoi(val))) ||
+                        (cond_type == data_type::STRING && compare(t->at_string(cond_pos), op, val)))
+                        output(t, sel_type, sel_pos);
+                }
             }
         } else {
+            out_put_first();
             for(auto &t : l)
                 output(t, sel_type, sel_pos);
         }
         cout << endl;
     }
+    void save() { //save理论上说是noexcept的
+        bool first = true;
+        for(const auto& name : column_name) {
+            auto [pos, type, is_primary] = hash_table[name];
+            auto type_s = (type == data_type::INT ? "int" : "string");
+            if(first) {
+                first = false;
+                cout << "(" << name << " " << type_s;               
+            } else {
+                cout << ", " << name << " " << type_s;   
+            }
+            if(is_primary) cout << " primary";
+        }
+        cout << ")" << endl;
+        for(const auto& data : l) {
+            cout << "insert " << table_name << " ";
+            first = true;
+            for(const auto& name : column_name) {
+                auto [pos, type, is_primary] = hash_table[name];
+                if(first) {
+                    first = false;
+                    cout << "values(";
+                } else {
+                    cout << ", ";
+                }
+                if(type == data_type::INT)
+                    cout << data->at_int(pos);
+                else
+                    cout << '\"' << data->at_string(pos) << '\"';
+            }
+            cout << ")" << endl;                
+        }
+    }
 };
 using table_ptr = Table*;
 
-class SplaySql { // 数据库，内包含多张表
+class iSTLsql { // 数据库，内包含多张表
 private:
     string database_name;
-    struct _SplaySql {
+    struct _iSTLsql {
         string name; // 表的名字
         table_ptr p;
-        _SplaySql(const string &name = "", table_ptr p = nullptr) noexcept {
+        _iSTLsql(const string &name = "", table_ptr p = nullptr) noexcept {
             this->name = name;
             this->p = p;
         }
     };
-    dlist<_SplaySql> l;
+    dlist<_iSTLsql> l;
 
 public:
-    SplaySql() {}
-    SplaySql(const string& name) noexcept : database_name(name) {}
-    ~SplaySql() {
+    iSTLsql() {}
+    iSTLsql(const string& name) noexcept : database_name(name) {}
+    ~iSTLsql() {
         for(auto &t : l)
             delete t.p;
     }
@@ -264,7 +382,7 @@ public:
             for(const auto& t : l)
                 if(t.name == s)
                     throw NameException(string("Error: ") + s + string(" already exists."));
-            p->create(); 
+            p->create(s); 
             l.emplace_back(s, p);                     
         // } catch(invalid_argument &e) { //冗余代码？
         //     cout << e.what() << endl;
@@ -336,7 +454,13 @@ public:
             cout << t.name << endl;
         cout << endl;
     }
-    void start() {
+    void save() {
+        for(const auto& t : l) {
+            cout << "create table " << t.name << ' ';
+            t.p->save();
+        }
+    }
+    void start(bool read_data = false) {
         string cmd;
         while(true) {
             try {
@@ -352,7 +476,7 @@ public:
                 else if(cmd == "drop")
                     this->drop();
                 else if(cmd == "exit") {
-                    cout << "Exit " << database_name << "." << endl;
+                    if(!read_data) cout << "Exit " << database_name << endl;
                     return;
                 } else {
                     cout << "Error: Not found command." << endl;
@@ -361,21 +485,23 @@ public:
                 cout << e.what() << endl;
             }
             #ifndef DEBUG
+            if(read_data == false) {
                 cin.clear();
                 cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            }
             #endif
         }
     }
 };
-using splaysql_ptr = SplaySql*;
+using iSTLsql_ptr = iSTLsql*;
 
 class DataBase { // 数据库总体，内包含多个数据库
 private:
     struct _DataBase {
         string name; // 数据库的名字
-        splaysql_ptr p;
+        iSTLsql_ptr p;
         _DataBase() noexcept : name(string("")), p(nullptr) {}
-        _DataBase(const string& _name, splaysql_ptr _p) noexcept : name(_name), p(_p) {} 
+        _DataBase(const string& _name, iSTLsql_ptr _p) noexcept : name(_name), p(_p) {} 
     };
     dlist<_DataBase> l;
 
@@ -394,15 +520,15 @@ public:
                 return;
             }
         }
-        splaysql_ptr p = new SplaySql(s);
+        iSTLsql_ptr p = new iSTLsql(s);
         l.emplace_back(s, p);
     }
-    void use() {
+    void use(bool read_data = false) {
         string s;
         cin >> s;
         for(const auto& t : l) {
             if(t.name == s) {
-                t.p->start();
+                t.p->start(read_data);
                 return;
             }
         }
@@ -430,20 +556,33 @@ public:
             cout << t.name << endl;
         cout << endl;
     }
-    void start() {
-        cout << "SplaySql start..." << endl;
+    void save() {
+        freopen("testdata.in", "w", stdout);
+        for(const auto& t : l) {
+            cout << "create " << t.name << endl;
+            cout << "use " << t.name << endl;
+            t.p->save();
+            cout << "exit" << endl;   
+        }
+        cout << "exit" << endl;
+        cout << "FILE END FlAG" << endl;
+        freopen("/dev/tty", "w", stdout);
+    }
+    void start(bool read_data = false) {
+        if(!read_data) cout << TERM_GREEN << "iSTLsql start..." << TERM_RESET << endl;
         string cmd;
         while(true) {
             cin >> cmd;
             if(cmd == "create")
                 this->create();
             else if(cmd == "use")
-                this->use();
+                this->use(read_data);
             else if(cmd == "show")
                 this->show();
             else if(cmd == "drop")
                 this->drop();
             else if(cmd == "exit") {
+                this->save();
                 #ifndef DEBUG
                     cin.clear();
                     cin.ignore(numeric_limits<streamsize>::max(),'\n');
@@ -453,10 +592,23 @@ public:
                 cout << "Error: Not found command." << endl;
             }
             #ifndef DEBUG
+            if(read_data == false) {
                 cin.clear();
                 cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            }
             #endif
         }
+    }
+    void init() {
+        freopen("testdata.in", "r", stdin);
+        this->start(true);
+        freopen("/dev/tty", "r", stdin);
+        cout << TERM_GREEN << "Read data done." << TERM_RESET << endl;
+        cout << "=============================================" << endl;
+        cout << endl;
+        //cin.clear();
+        //cin.ignore(numeric_limits<streamsize>::max(),'\n');
+        //fflush(stdin);
     }
 }db;
 
@@ -464,6 +616,7 @@ int main() {
     // freopen("testdata.in", "r", stdin);
     //ios::sync_with_stdio(false); 
     //cin.tie(nullptr);
+    db.init();
     db.start();
     // string s("test_database");
     // db.create(s);

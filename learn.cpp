@@ -6,6 +6,17 @@ auto calc = [](int x)->int {
     return x + 3;
 };
 
+int sum(int&& x, int&& y) {
+    x = 3;
+    return x + y;
+}
+
+using callback = void (int);
+
+void test_fun(callback f) {
+    f(5);
+}
+
 int main() {
     try {
         throw invalid_argument("test error");
@@ -46,5 +57,23 @@ int main() {
     }
     for(auto x : l) cout << x << ' ';
     cout << endl;
+    cout << sum(5, 6) << endl;
+    // if(decltype(int) == int) cout << "emmm. " << endl;
+    // auto fun = [&v1](int val)->void {
+    //     v1.clear();
+    //     v1.push_back(val);
+    //     ++val;
+    // };
+    // test_fun(fun);
+    freopen("testdata.in", "r", stdin);
+    for(int i = 1; i <= 3; ++i) {
+        string s;
+        cin >> s;
+    }
+    //fclose(stdin);
+    freopen("/dev/tty", "r", stdin);
+    string str;
+    cin >> str;
+    cout << str + string(" after fclose(stdin).") << endl;
     return 0;
 }
