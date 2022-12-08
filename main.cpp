@@ -2,6 +2,28 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+#ifndef WIN
+
+#define TERM_RED    "\e[1;31m"
+#define TERM_GREEN  "\e[1;32m"
+#define TERM_BROWN  "\e[1;33m"
+#define TERM_BLUE   "\e[1;34m"
+#define TERM_CYAN   "\e[1;36m"
+#define TERM_WHITE  "\e[1;37m"
+#define TERM_RESET  "\e[0m"
+
+#else
+
+#define TERM_RED    ""
+#define TERM_GREEN  ""
+#define TERM_BROWN  ""
+#define TERM_BLUE   ""
+#define TERM_CYAN   ""
+#define TERM_WHITE  ""
+#define TERM_RESET  ""
+
+#endif
+
 enum class data_type { INT, STRING };
 
 function<void (bool)> Assert = [](bool res)->void { //maybe just use for learning c++ new feature 
@@ -63,7 +85,7 @@ using data_ptr = Data*;
 class Table {
 public:
     //using column_property = pair<int, data_type>;
-    using column_property = tuple<size_t, data_type, bool>; //依次为每一列的存储位置，数据类型，是否为主键
+    using column_property = tuple<size_t, data_type, bool>; //依次为每一列的存储位置，数据类型，是否为主键（是否建立索引）
 private:
     unordered_map<string, column_property> hash_table; //记录每一列的属性
     size_t string_cnt = 0, int_cnt = 0;
@@ -176,7 +198,7 @@ public:
         auto output = [&name, &first](data_ptr p,data_type type, size_t pos)->void {
             if(first) {
                 first = false;
-                cout << name << endl;
+                cout << TERM_CYAN << name << TERM_RESET << endl;
             }
             if(type == data_type::INT) cout << p->at_int(pos) << endl;
             else cout << p->at_string(pos) << endl;
@@ -201,6 +223,7 @@ public:
             for(auto &t : l)
                 output(t, sel_type, sel_pos);
         }
+        cout << endl;
     }
 };
 using table_ptr = Table*;
@@ -304,6 +327,15 @@ public:
         }
         throw NameException(string("Error: table ") + s + string(" doesn't exist."));
     }
+    void show() {
+        string s;
+        cin >> s;
+        Assert(s == "tables");
+        cout << TERM_BLUE << "tables" << TERM_RESET << endl;
+        for(const auto& t : l)
+            cout << t.name << endl;
+        cout << endl;
+    }
     void start() {
         string cmd;
         while(true) {
@@ -315,6 +347,8 @@ public:
                     this->insert();
                 else if(cmd == "select")
                     this->select();
+                else if(cmd == "show")
+                    this->show();
                 else if(cmd == "drop")
                     this->drop();
                 else if(cmd == "exit") {
@@ -326,7 +360,10 @@ public:
             } catch(exception &e) {
                 cout << e.what() << endl;
             }
-            cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            #ifndef DEBUG
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            #endif
         }
     }
 };
@@ -384,6 +421,15 @@ public:
         }
         cout << "Error: Not found database " << s << "." << endl;
     }
+    void show() {
+        string s;
+        cin >> s;
+        Assert(s == "databases");
+        cout << TERM_BLUE << "Database" << TERM_RESET << endl;
+        for(const auto& t : l)
+            cout << t.name << endl;
+        cout << endl;
+    }
     void start() {
         cout << "SplaySql start..." << endl;
         string cmd;
@@ -393,20 +439,29 @@ public:
                 this->create();
             else if(cmd == "use")
                 this->use();
+            else if(cmd == "show")
+                this->show();
             else if(cmd == "drop")
                 this->drop();
             else if(cmd == "exit") {
-                cin.ignore(numeric_limits<streamsize>::max(),'\n');
+                #ifndef DEBUG
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(),'\n');
+                #endif
                 return;
             } else {
                 cout << "Error: Not found command." << endl;
             }
-            cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            #ifndef DEBUG
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            #endif
         }
     }
 }db;
 
 int main() {
+    // freopen("testdata.in", "r", stdin);
     //ios::sync_with_stdio(false); 
     //cin.tie(nullptr);
     db.start();

@@ -194,6 +194,10 @@ public:
         _pop(tail.prior->prior);
     }
 
+    void pop(nodeptr_t t) {
+        _pop(t->prior);
+    }
+
     //在链表l头部获取数据
     value_type front() {
         return _get(head.next);
