@@ -1,21 +1,21 @@
-## 现代 C++ 实现简单 SQL 数据库
+# 现代 C++ 实现简单 SQL 数据库
 
 > iSTLsql（ i 谐音“爱”，STL 即 C++ 标准模板库）是一个简单的 SQL 数据库，基于 `std::multiset` 实现索引结构。目前支持白老师大作业要求的所有功能
 
-### Introduction
+## Introduction
 
 环境：Ubuntu-22.04，g++ 11.2.0
 
 数据暂时存储在 `./testdata.in` 中，以 SQL 语句的形式存储，可以作为示例参考，**仅支持少量 SQL 语句，语法相较实际 SQL 语句有差异，具体后面 SQL Grammar 和 Example**
 
-#### 快速构建并启动
+### 快速构建并启动
 
 ```sh
 make
 ./main
 ```
 
-### Used C++ Features
+## Used C++ Features
 
 ✅ `auto` 类型推导与函数返回值推导，基于区间的 `for`，结构化绑定，函数默认参数值
 
@@ -35,7 +35,7 @@ make
 
 ✅ `noexcept`, `nullptr`
 
-### Other Featrures
+## Other Featrures
 
 ✅ 白老师的双向链表模板 `dlist.h`
 
@@ -43,7 +43,7 @@ make
 
 ❌ C++ 输入缓冲区清空存在问题
 
-### SQL Grammar
+## SQL Grammar
 
 > 相比作业要求目前增加了show语句
 
@@ -159,7 +159,7 @@ make
     ```
     **注意：`values` 与 `(` 之间不能有空格**
 
-### Example
+## Example
 
 ```sql
 create testbase
