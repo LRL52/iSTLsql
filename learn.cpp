@@ -65,15 +65,20 @@ int main() {
     //     ++val;
     // };
     // test_fun(fun);
-    freopen("testdata.in", "r", stdin);
-    for(int i = 1; i <= 3; ++i) {
-        string s;
-        cin >> s;
-    }
+    // freopen("testdata.in", "r", stdin);
+    // for(int i = 1; i <= 3; ++i) {
+    //     string s;
+    //     cin >> s;
+    // }
     //fclose(stdin);
-    freopen("/dev/tty", "r", stdin);
-    string str;
-    cin >> str;
-    cout << str + string(" after fclose(stdin).") << endl;
+    // freopen("/dev/tty", "r", stdin);
+    // string str;
+    // cin >> str;
+    // cout << str + string(" after fclose(stdin).") << endl;
+    cout << "col1\tcol2\tcol3" << endl;
+    cout.flags(ios::left);
+    cout << setw(8);
+    cout << "ac" << setw(8) << "w" << "dd" << endl;
+    cout << "abc" << ' ' << "cde" << endl;
     return 0;
 }

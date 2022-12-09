@@ -24,7 +24,7 @@ using namespace std;
 
 #endif
 
-enum class data_type { INT, STRING };
+enum class data_type { INT, STRING, ALL }; //增添 ALL 作为枚举是为了 select * 语句
 
 function<void (bool)> Assert = [](bool res)->void { //maybe just use for learning c++ new feature 
     if(res == false)
@@ -96,7 +96,7 @@ public:
     };
     using int_set_ptr = multiset<index_t<int> >*;
     using string_set_ptr = multiset<index_t<string> >*;
-    using callback = void (data_ptr, data_type, size_t);
+    using callback = void (data_ptr, data_type, size_t, vector<string>&, unordered_map<string, column_property>&);
 
 private:
     unordered_map<string, column_property> hash_table; //记录每一列的属性
@@ -115,7 +115,7 @@ private:
         if(op == ">") it = set_ptr->upper_bound({val, data_ptr(nullptr)});
         for(; it != set_ptr->end(); it++) {
             if(compare(it->val, op, val))
-                output(it->p, sel_type, sel_pos);
+                output(it->p, sel_type, sel_pos, column_name, hash_table);
             else
                 break;
         }
@@ -156,6 +156,8 @@ public:
                     //name = name.substr(1, string::npos); //去掉(
                     name.erase(name.begin());
                 }
+                if(name == "*")
+                    throw NameException("Error: '*' is not allowed to be a column name.");
                 cin >> type;
                 fix();
                 if(hash_table.find(name) != hash_table.end())
@@ -178,6 +180,7 @@ public:
                 if(end_flag) break;
             }
             column_name.resize(int_cnt + string_cnt); //修正列的宽度，避免内存浪费
+            hash_table["*"] = make_tuple(0, data_type::ALL, false);
         // } catch(invalid_argument &e) { //冗余代码？
         //     cout << e.what() << endl;
         // } catch(NameException &e) {
@@ -256,17 +259,44 @@ public:
             throw NameException(string("Error: ") + name + string(" doesn't exist."));
         auto sel_type = get<1>(sel->second);
         auto sel_pos = get<0>(sel->second);
-        auto out_put_first = [&name]()->void {
-            cout << TERM_CYAN << name << TERM_RESET << endl;
+        auto out_put_first = [&name](const vector<string> &column_name)->void {
+            if(name != "*") cout << TERM_CYAN << name << TERM_RESET << endl;
+            else {
+                bool first = true;
+                for(const auto& str : column_name) {
+                    if(first) {
+                        cout << TERM_CYAN << str;
+                        first = false;
+                    } else
+                        cout << "\t\t" << str;
+                }
+                cout << TERM_RESET << endl;                    
+            }
         };
-        auto output = /*[&name, &first]*/[](data_ptr p, data_type type, size_t pos)->void {
+        auto output = /*[&name, &first]*/[](data_ptr p, data_type type, size_t pos, vector<string> &column_name, unordered_map<string, column_property> &hash_table)->void {
             // if(first) {
             //     first = false;
-            //     cout << TERM_CYAN << name << TERM_RESET << endl;
+            //     cout << TERM_CYAN << name << TERM_RESET << endl
             // }
-            if(type == data_type::INT) cout << p->at_int(pos) << endl;
-            else cout << p->at_string(pos) << endl;
+            if(type == data_type::INT) 
+                cout << p->at_int(pos) << endl;
+            else if(type == data_type::STRING)
+                cout << p->at_string(pos) << endl;
+            else {
+                //难蚌, lambda 函数内访问不到类变量，只能传参进来了
+                cout.flags(ios::left);
+                for(const auto& str : column_name) {
+                    auto [pos, type, is_primary] = hash_table[str];
+                    cout << setw(16);
+                    if(type == data_type::INT) 
+                        cout << p->at_int(pos);
+                    else 
+                        cout << p->at_string(pos);
+                }
+                cout << endl;
+            }
         };
+        
         if(ss >> s) {
             Assert(s == "where");
             Assert(bool(ss >> s)); //s是where的条件列
@@ -284,7 +314,7 @@ public:
                 Assert(val.front() == '\"' && val.back() == '\"');
                 val = val.substr(1, val.size() - 2);
             }
-            out_put_first();
+            out_put_first(column_name);
             if(cond_primary == true) {
                 if(cond_type == data_type::INT) {
                     auto set_ptr = index_int_table[s];
@@ -300,13 +330,13 @@ public:
                 for(auto &t : l) {
                     if((cond_type == data_type::INT && compare(t->at_int(cond_pos), op, stoi(val))) ||
                         (cond_type == data_type::STRING && compare(t->at_string(cond_pos), op, val)))
-                        output(t, sel_type, sel_pos);
+                        output(t, sel_type, sel_pos, column_name, hash_table);
                 }
             }
         } else {
-            out_put_first();
+            out_put_first(column_name);
             for(auto &t : l)
-                output(t, sel_type, sel_pos);
+                output(t, sel_type, sel_pos, column_name, hash_table);
         }
         cout << endl;
     }
