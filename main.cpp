@@ -476,7 +476,7 @@ public:
                 else if(cmd == "drop")
                     this->drop();
                 else if(cmd == "exit") {
-                    if(!read_data) cout << "Exit " << database_name << endl;
+                    if(!read_data) cout << TERM_GREEN << "exit " << database_name << TERM_RESET << endl;
                     return;
                 } else {
                     cout << "Error: Not found command." << endl;
