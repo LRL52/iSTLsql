@@ -32,6 +32,15 @@ function<void (bool)> Assert = [](bool res)->void { //maybe just use for learnin
 };
 //#define check(x) check(s, x)
 
+inline void flush_stdin(bool read_data) {
+#ifndef DEBUG
+    if(read_data == false) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max());
+    }
+#endif
+}
+
 class NameException : public exception {
 private:
     string message;
@@ -96,7 +105,8 @@ public:
     };
     using int_set_ptr = multiset<index_t<int> >*;
     using string_set_ptr = multiset<index_t<string> >*;
-    using callback = void (data_ptr, data_type, size_t, vector<string>&, unordered_map<string, column_property>&);
+    // using callback = void (data_ptr, data_type, size_t, vector<string>&, unordered_map<string, column_property>&);
+    using callback = function<void (data_ptr)>;
 
 private:
     unordered_map<string, column_property> hash_table; //记录每一列的属性
@@ -109,13 +119,13 @@ private:
     dlist<data_ptr> l;
 
     template<typename set_t, typename val_t>
-    void index_search(set_t set_ptr, const string& op, const val_t& val, data_type sel_type, size_t sel_pos, callback output) {
+    void index_search(set_t set_ptr, const string& op, const val_t& val, callback output) {
         auto it = set_ptr->begin();
         if(op == "=") it = set_ptr->lower_bound({val, data_ptr(nullptr)});
         if(op == ">") it = set_ptr->upper_bound({val, data_ptr(nullptr)});
         for(; it != set_ptr->end(); it++) {
             if(compare(it->val, op, val))
-                output(it->p, sel_type, sel_pos, column_name, hash_table);
+                output(it->p);
             else
                 break;
         }
@@ -273,15 +283,15 @@ public:
                 cout << TERM_RESET << endl;                    
             }
         };
-        auto output = /*[&name, &first]*/[](data_ptr p, data_type type, size_t pos, vector<string> &column_name, unordered_map<string, column_property> &hash_table)->void {
+        auto output = /*[&name, &first]*/[this, &sel_type, &sel_pos](data_ptr p)->void {
             // if(first) {
             //     first = false;
             //     cout << TERM_CYAN << name << TERM_RESET << endl
             // }
-            if(type == data_type::INT) 
-                cout << p->at_int(pos) << endl;
-            else if(type == data_type::STRING)
-                cout << p->at_string(pos) << endl;
+            if(sel_type == data_type::INT) 
+                cout << p->at_int(sel_pos) << endl;
+            else if(sel_type == data_type::STRING)
+                cout << p->at_string(sel_pos) << endl;
             else {
                 //难蚌, lambda 函数内访问不到类变量，只能传参进来了
                 cout.flags(ios::left);
@@ -320,23 +330,23 @@ public:
                     auto set_ptr = index_int_table[s];
                     Assert(set_ptr != nullptr);
                     auto ival = stoi(val);
-                    index_search(set_ptr, op, ival, sel_type, sel_pos, output);
+                    index_search(set_ptr, op, ival, output);
                 } else {
                     auto set_ptr = index_string_table[s];
                     Assert(set_ptr != nullptr);
-                    index_search(set_ptr, op, val, sel_type, sel_pos, output);
+                    index_search(set_ptr, op, val, output);
                 }
             } else {
                 for(auto &t : l) {
                     if((cond_type == data_type::INT && compare(t->at_int(cond_pos), op, stoi(val))) ||
                         (cond_type == data_type::STRING && compare(t->at_string(cond_pos), op, val)))
-                        output(t, sel_type, sel_pos, column_name, hash_table);
+                        output(t);
                 }
             }
         } else {
             out_put_first(column_name);
             for(auto &t : l)
-                output(t, sel_type, sel_pos, column_name, hash_table);
+                output(t);
         }
         cout << endl;
     }
@@ -514,12 +524,7 @@ public:
             } catch(exception &e) {
                 cout << e.what() << endl;
             }
-            #ifndef DEBUG
-            if(read_data == false) {
-                cin.clear();
-                cin.ignore(numeric_limits<streamsize>::max(),'\n');
-            }
-            #endif
+            flush_stdin(read_data);
         }
     }
 };
@@ -613,20 +618,12 @@ public:
                 this->drop();
             else if(cmd == "exit") {
                 this->save();
-                #ifndef DEBUG
-                    cin.clear();
-                    cin.ignore(numeric_limits<streamsize>::max(),'\n');
-                #endif
+                flush_stdin(read_data);
                 return;
             } else {
                 cout << "Error: Not found command." << endl;
             }
-            #ifndef DEBUG
-            if(read_data == false) {
-                cin.clear();
-                cin.ignore(numeric_limits<streamsize>::max(),'\n');
-            }
-            #endif
+            flush_stdin(read_data);
         }
     }
     void init() {

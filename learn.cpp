@@ -11,7 +11,8 @@ int sum(int&& x, int&& y) {
     return x + y;
 }
 
-using callback = void (int);
+//using callback = void (int);
+using callback = function<void (int)>;
 
 void test_fun(callback f) {
     f(5);
@@ -59,12 +60,14 @@ int main() {
     cout << endl;
     cout << sum(5, 6) << endl;
     // if(decltype(int) == int) cout << "emmm. " << endl;
-    // auto fun = [&v1](int val)->void {
-    //     v1.clear();
-    //     v1.push_back(val);
-    //     ++val;
-    // };
-    // test_fun(fun);
+    auto fun = [&v1](int val)->void {
+        v1.clear();
+        v1.push_back(val);
+        ++val;
+    };
+    test_fun(fun);
+    for(auto& x : v1) cout << x << ' ';
+    cout << endl;
     // freopen("testdata.in", "r", stdin);
     // for(int i = 1; i <= 3; ++i) {
     //     string s;

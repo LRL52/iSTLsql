@@ -6,7 +6,9 @@ CXXFLAG = -Wall -g -std=c++23 -DDEBUG
 ASAN = -fsanitize=address
 LIB =
 
-all: $(source)
+all: $(target)
+
+main: $(source)
 	$(CXX) $(source) $(CXXFLAG) $(ASAN) -o $(target) $(LIB)
 
 clean:
