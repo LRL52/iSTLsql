@@ -69,15 +69,20 @@ int main() {
     for(auto& x : v1) cout << x << ' ';
     cout << endl;
     // freopen("testdata.in", "r", stdin);
-    // for(int i = 1; i <= 3; ++i) {
-    //     string s;
-    //     cin >> s;
-    // }
-    //fclose(stdin);
+    ifstream in("testdata.in");
+    streambuf *cin_stream = cin.rdbuf();
+    cin.rdbuf(in.rdbuf());
+    for(int i = 1; i <= 3; ++i) {
+        string s;
+        cin >> s;
+        cout << s << endl;
+    }
+    // fclose(stdin);
     // freopen("/dev/tty", "r", stdin);
-    // string str;
-    // cin >> str;
-    // cout << str + string(" after fclose(stdin).") << endl;
+    cin.rdbuf(cin_stream);
+    string str;
+    cin >> str;
+    cout << str + string(" after fclose(stdin).") << endl;
     cout << "col1\tcol2\tcol3" << endl;
     cout.flags(ios::left);
     cout << setw(8);

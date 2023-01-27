@@ -34,9 +34,12 @@ function<void (bool)> Assert = [](bool res)->void { //maybe just use for learnin
 
 inline void flush_stdin(bool read_data) {
 #ifndef DEBUG
-    if(read_data == false) {
+    // int val = cin.rdbuf()->in_avail();
+    if(read_data == false && !cin.eof()) {
         cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max());
+        //cin.sync();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        // cin.ignore(cin.rdbuf()->in_avail());
     }
 #endif
 }
@@ -116,7 +119,7 @@ private:
 
     string table_name;
     size_t string_cnt = 0, int_cnt = 0;
-    dlist<data_ptr> l;
+    dlist<data_ptr> l; //存每一项数据
 
     template<typename set_t, typename val_t>
     void index_search(set_t set_ptr, const string& op, const val_t& val, callback output) {
@@ -200,7 +203,7 @@ public:
         // }
     }
     void insert() {
-        auto item = new Data(int_cnt, string_cnt);
+        auto item = new Data(int_cnt, string_cnt); //创建一个新的Data项item
         string data; //仅一个数据(string 或 int)
         bool end_flag = false, first = true;
         size_t cnt1 = 0, cnt2 = 0; //cnt1, cnt2分别是int和string的个数
@@ -227,7 +230,7 @@ public:
                     data = data.substr(7, string::npos);
                 }
                 auto type = fix();
-                if(type == data_type::INT) {
+                if(type == data_type::INT) { //根据类型塞入item
                     ++cnt1;
                     auto val = stoi(data);
                     item->emplace_int(val);
@@ -264,7 +267,7 @@ public:
         string s, op, val;
         // int ival;
         // bool first = true;
-        auto sel = hash_table.find(name);
+        auto sel = hash_table.find(name); //获取被select的列
         if(sel == hash_table.end())
             throw NameException(string("Error: ") + name + string(" doesn't exist."));
         auto sel_type = get<1>(sel->second);
@@ -307,7 +310,7 @@ public:
             }
         };
         
-        if(ss >> s) {
+        if(ss >> s) { //有条件，处理where条件
             Assert(s == "where");
             Assert(bool(ss >> s)); //s是where的条件列
             auto cond = hash_table.find(s); //where的条件列
@@ -325,7 +328,7 @@ public:
                 val = val.substr(1, val.size() - 2);
             }
             out_put_first(column_name);
-            if(cond_primary == true) {
+            if(cond_primary == true) { //在mutliset中二分查找
                 if(cond_type == data_type::INT) {
                     auto set_ptr = index_int_table[s];
                     Assert(set_ptr != nullptr);
@@ -336,14 +339,14 @@ public:
                     Assert(set_ptr != nullptr);
                     index_search(set_ptr, op, val, output);
                 }
-            } else {
+            } else { //在链表中暴力查找
                 for(auto &t : l) {
                     if((cond_type == data_type::INT && compare(t->at_int(cond_pos), op, stoi(val))) ||
                         (cond_type == data_type::STRING && compare(t->at_string(cond_pos), op, val)))
                         output(t);
                 }
             }
-        } else {
+        } else { //无条件，输出所有数据
             out_put_first(column_name);
             for(auto &t : l)
                 output(t);
@@ -397,7 +400,7 @@ private:
             this->p = p;
         }
     };
-    dlist<_iSTLsql> l;
+    dlist<_iSTLsql> l; //存每一张表
 
 public:
     iSTLsql() {}
@@ -503,6 +506,7 @@ public:
     void start(bool read_data = false) {
         string cmd;
         while(true) {
+            if(!read_data) cout << TERM_GREEN << "> " << TERM_RESET;
             try {
                 cin >> cmd;
                 if(cmd == "create")
@@ -538,7 +542,7 @@ private:
         _DataBase() noexcept : name(string("")), p(nullptr) {}
         _DataBase(const string& _name, iSTLsql_ptr _p) noexcept : name(_name), p(_p) {} 
     };
-    dlist<_DataBase> l;
+    dlist<_DataBase> l; //存储每一个数据库
 
 public:
     ~DataBase() {
@@ -592,7 +596,11 @@ public:
         cout << endl;
     }
     void save() {
-        freopen("testdata.in", "w", stdout);
+        // freopen("testdata.in", "w", stdout);
+        ofstream out("testdata.in");
+        streambuf *cout_stream = cout.rdbuf();
+        cout.rdbuf(out.rdbuf());
+
         for(const auto& t : l) {
             cout << "create " << t.name << endl;
             cout << "use " << t.name << endl;
@@ -601,12 +609,14 @@ public:
         }
         cout << "exit" << endl;
         cout << "FILE END FlAG" << endl;
-        freopen("/dev/tty", "w", stdout);
+        // freopen("/dev/tty", "w", stdout);
+        cout.rdbuf(cout_stream);
     }
     void start(bool read_data = false) {
         if(!read_data) cout << TERM_GREEN << "iSTLsql start..." << TERM_RESET << endl;
         string cmd;
         while(true) {
+            if(!read_data) cout << TERM_GREEN << "> " << TERM_RESET;
             cin >> cmd;
             if(cmd == "create")
                 this->create();
@@ -627,9 +637,13 @@ public:
         }
     }
     void init() {
-        freopen("testdata.in", "r", stdin);
+        // freopen("testdata.in", "r", stdin);
+        ifstream in("testdata.in");
+        streambuf *cin_stream = cin.rdbuf();
+        cin.rdbuf(in.rdbuf());
         this->start(true);
-        freopen("/dev/tty", "r", stdin);
+        // freopen("/dev/tty", "r", stdin);
+        cin.rdbuf(cin_stream);
         cout << TERM_GREEN << "Read data done." << TERM_RESET << endl;
         cout << "=============================================" << endl;
         cout << endl;
