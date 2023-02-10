@@ -2,7 +2,7 @@ source = main.cpp
 target = main
 
 CXX = g++
-CXXFLAG = -Wall -g -std=c++23
+CXXFLAG = -O2 -Wall -g -std=c++23
 ASAN = -fsanitize=address
 LIB =
 

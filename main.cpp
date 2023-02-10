@@ -33,7 +33,7 @@ function<void (bool)> Assert = [](bool res)->void { //maybe just use for learnin
 //#define check(x) check(s, x)
 
 inline void flush_stdin(bool read_data) {
-#ifndef DEBUG
+#ifdef DEBUG
     // int val = cin.rdbuf()->in_avail();
     if(read_data == false && !cin.eof()) {
         cin.clear();
@@ -273,6 +273,7 @@ public:
         auto sel_type = get<1>(sel->second);
         auto sel_pos = get<0>(sel->second);
         auto out_put_first = [&name](const vector<string> &column_name)->void {
+        #ifndef TEST
             if(name != "*") cout << TERM_CYAN << name << TERM_RESET << endl;
             else {
                 bool first = true;
@@ -285,12 +286,14 @@ public:
                 }
                 cout << TERM_RESET << endl;                    
             }
+        #endif
         };
         auto output = /*[&name, &first]*/[this, &sel_type, &sel_pos](data_ptr p)->void {
             // if(first) {
             //     first = false;
             //     cout << TERM_CYAN << name << TERM_RESET << endl
             // }
+        #ifndef TEST
             if(sel_type == data_type::INT) 
                 cout << p->at_int(sel_pos) << endl;
             else if(sel_type == data_type::STRING)
@@ -308,6 +311,7 @@ public:
                 }
                 cout << endl;
             }
+        #endif
         };
         
         if(ss >> s) { //有条件，处理where条件
@@ -328,6 +332,7 @@ public:
                 val = val.substr(1, val.size() - 2);
             }
             out_put_first(column_name);
+            // cond_primary = false; //强制关闭索引查找，仅用于测试
             if(cond_primary == true) { //在mutliset中二分查找
                 if(cond_type == data_type::INT) {
                     auto set_ptr = index_int_table[s];
@@ -351,7 +356,9 @@ public:
             for(auto &t : l)
                 output(t);
         }
+    #ifndef TEST
         cout << endl;
+    #endif
     }
     void save() { //save理论上说是noexcept的
         bool first = true;
@@ -506,7 +513,9 @@ public:
     void start(bool read_data = false) {
         string cmd;
         while(true) {
+        #ifndef TEST
             if(!read_data) cout << TERM_GREEN << "> " << TERM_RESET;
+        #endif
             try {
                 cin >> cmd;
                 if(cmd == "create")
@@ -639,6 +648,10 @@ public:
     void init() {
         // freopen("testdata.in", "r", stdin);
         ifstream in("testdata.in");
+        if(!in.is_open()) {
+            cerr << TERM_RED << "Fail to open testdata.in!" << TERM_RESET << endl;
+            exit(EXIT_FAILURE);
+        }
         streambuf *cin_stream = cin.rdbuf();
         cin.rdbuf(in.rdbuf());
         this->start(true);
@@ -655,8 +668,8 @@ public:
 
 int main() {
     // freopen("testdata.in", "r", stdin);
-    //ios::sync_with_stdio(false); 
-    //cin.tie(nullptr);
+    // ios::sync_with_stdio(false); 
+    // cin.tie(nullptr), cout.tie(nullptr);
     db.init();
     db.start();
     // string s("test_database");

@@ -69,5 +69,7 @@ int main() {
     s1.erase(s1.begin());
     cout << s1 << endl;
     dlist<_DataBase> l2;
+    // string data("3359348598");
+    // cout << stoi(data) << endl;
     return 0;
 }
