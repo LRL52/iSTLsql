@@ -170,12 +170,7 @@ make
 
 ```sql
 create testbase
-use testbase
-create table employee (id int primary, phone string, salary int primary)
-insert employee values(55, "18723332333", 5552)
-insert employee values(65, "18723552333", 5052)
-insert employee values(75, "18726632333", 8500)
-insert employee values(10, "18723332663", 10500)
+use testbase                      
 select id from employee where id < 70
 select id from employee where id = 65
 select phone from employee where salary > 8000
@@ -187,6 +182,6 @@ select * from mytable
 select * from mytable where comment = "ddw"
 ```
 
-![image-20221209134754164](./images/image-20221209134754164.png)
+![image-20230210205245859](./images/image-20230210205245859.png)
 
-![image-20221209174535019](./images/image-20221209174535019.png)
+![image-20230210205420158](./images/image-20230210205420158.png)
