@@ -1,15 +1,18 @@
-source = main.cpp
-target = main
-
+target = main gen
 CXX = g++
 CXXFLAG = -O2 -Wall -g -std=c++23
 ASAN = -fsanitize=address
-LIB =
+RM = rm -f
+# LIB =
 
 all: $(target)
 
-main: $(source)
-	$(CXX) $(source) $(CXXFLAG) $(ASAN) -o $(target) $(LIB)
+$(target): %: %.cpp
+	$(CXX) $^ $(CXXFLAG) $(ASAN) -o $@
 
+# main: $(source)
+# 	$(CXX) $(source) $(CXXFLAG) $(ASAN) -o $(target) $(LIB)
+
+.PHONY: clean
 clean:
-	rm $(target)
+	$(RM) $(target)

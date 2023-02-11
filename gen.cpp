@@ -43,10 +43,12 @@ string& rand_string(int len) {
 void gen_insert(int n) {
     for(int i = 1; i <= n; ++i) {
         auto id = rng(), salary = rng();
-        auto name = rand_string(25), job = rand_string(25);
+        auto &name = rand_string(25), &job = rand_string(25);
         cout << "insert person values(" << id << ", \"" << name << "\", \"" << job << "\", " << salary << ")\n";
         Id.push_back(id);
-        Name.emplace_back(name);
+        Name.push_back(name);
+        delete &name;
+        delete &job;
     }
 }
 
@@ -90,10 +92,14 @@ int main(int argc, char *argv[]) {
     // sigaddset(&mask, SIGCHLD);
     // sigprocmask(SIG_BLOCK, &mask, &prev);
     
-    system("cp ./testdata.in ./testdata.bak");
+    int res;
+    res = system("cp ./testdata.in ./testdata.bak");
+    assert(res == 0);
+    // cout << "res = " << res << endl;
     auto start = steady_clock::now();
     char cmd[] = "./main < testdata1.in | sed -r \"s/\x1B\\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]//g\" > res.out";
-    system(cmd); 
+    res = system(cmd);
+    assert(res == 0);
     // if(fork() == 0) {
     //     sigprocmask(SIG_SETMASK, &prev, NULL);
     //     if(execve(path, argv, environ) < 0) {
@@ -107,7 +113,8 @@ int main(int argc, char *argv[]) {
     // sigprocmask(SIG_SETMASK, &prev, NULL);
     auto end = steady_clock::now();
     cout << "Time consuming: " << duration_cast<milliseconds>(end - start).count() << " ms" << endl;
-    system("mv ./testdata.bak ./testdata.in");
+    res = system("mv ./testdata.bak ./testdata.in");
+    assert(res == 0);
     // for(int i = 0; i < 10; ++i)
     //     cout << dist(rng) << endl;
     return 0;
